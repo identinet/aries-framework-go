@@ -25,7 +25,9 @@ import (
 
 // All command operations.
 const (
-	OperationID = "/vcwallet"
+	OperationID    = "/vcwallet"
+	VDROperationID = OperationID + "/vdr"
+	vdrDIDPath     = VDROperationID + "/did"
 
 	// command Paths.
 	CreateProfilePath       = OperationID + "/create-profile"
@@ -46,6 +48,7 @@ const (
 	ConnectPath             = OperationID + "/connect"
 	ProposePresentationPath = OperationID + "/propose-presentation"
 	PresentProofPath        = OperationID + "/present-proof"
+	CreateDIDPath           = vdrDIDPath + "/create"
 )
 
 // provider contains dependencies for the verifiable credential wallet command controller
