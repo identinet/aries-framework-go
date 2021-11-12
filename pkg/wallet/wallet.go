@@ -15,12 +15,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/piprate/json-gold/ld"
-
 	"github.com/hyperledger/aries-framework-go/pkg/client/didexchange"
 	"github.com/hyperledger/aries-framework-go/pkg/client/outofband"
 	"github.com/hyperledger/aries-framework-go/pkg/client/presentproof"
 	"github.com/hyperledger/aries-framework-go/pkg/common/log"
+	verifiablec "github.com/hyperledger/aries-framework-go/pkg/controller/command/verifiable"
 	"github.com/hyperledger/aries-framework-go/pkg/crypto"
 	"github.com/hyperledger/aries-framework-go/pkg/didcomm/common/model"
 	"github.com/hyperledger/aries-framework-go/pkg/didcomm/common/service"
@@ -37,8 +36,10 @@ import (
 	"github.com/hyperledger/aries-framework-go/pkg/doc/verifiable"
 	"github.com/hyperledger/aries-framework-go/pkg/framework/aries/api/vdr"
 	"github.com/hyperledger/aries-framework-go/pkg/kms"
+	"github.com/hyperledger/aries-framework-go/pkg/kms/localkms"
 	"github.com/hyperledger/aries-framework-go/pkg/store/connection"
 	"github.com/hyperledger/aries-framework-go/spi/storage"
+	"github.com/piprate/json-gold/ld"
 )
 
 // Proof types.
@@ -986,14 +987,25 @@ func (c *Wallet) validateProofOption(authToken string, opts *ProofOptions, metho
 func (c *Wallet) validateVerificationMethod(didDoc *did.Doc, opts *ProofOptions,
 	relationship did.VerificationRelationship) error {
 	vms := didDoc.VerificationMethods(relationship)[relationship]
+	kt := kms.ED25519Type
 
 	for _, vm := range vms {
 		if opts.VerificationMethod == "" {
 			opts.VerificationMethod = vm.VerificationMethod.ID
-			return nil
 		}
 
 		if opts.VerificationMethod == vm.VerificationMethod.ID {
+			switch vm.VerificationMethod.Type {
+			case verifiablec.Ed25519VerificationKey:
+			case verifiablec.JSONWebKey2020:
+				kt = verifiablec.KmsKeyTypeByJWKCurve(vm.VerificationMethod.JSONWebKey().Crv)
+			}
+
+			kid, err := localkms.CreateKID(vm.VerificationMethod.Value, kt)
+			if err != nil {
+				return fmt.Errorf("failed to get keyID from verification method: %w", err)
+			}
+			opts.KID = kid
 			return nil
 		}
 	}

@@ -1084,7 +1084,7 @@ func buildKIDOption(opts *ProofOptions, vms []did.VerificationMethod) error {
 				switch vm.Type {
 				case Ed25519VerificationKey:
 				case JSONWebKey2020:
-					kt = kmsKeyTypeByJWKCurve(vm.JSONWebKey().Crv)
+					kt = KmsKeyTypeByJWKCurve(vm.JSONWebKey().Crv)
 				}
 
 				kid, err := localkms.CreateKID(vm.Value, kt)
@@ -1100,7 +1100,7 @@ func buildKIDOption(opts *ProofOptions, vms []did.VerificationMethod) error {
 	return nil
 }
 
-func kmsKeyTypeByJWKCurve(crv string) kms.KeyType {
+func KmsKeyTypeByJWKCurve(crv string) kms.KeyType {
 	kt := kms.ED25519Type
 
 	switch crv {

@@ -262,13 +262,7 @@ func newKMSSigner(authToken string, c crypto.Crypto, opts *ProofOptions) (*kmsSi
 		return nil, fmt.Errorf("failed to get key manager: %w", err)
 	}
 
-	vmSplit := strings.Split(opts.VerificationMethod, "#")
-
-	if len(vmSplit) != vmSectionCount {
-		return nil, errors.New("invalid verification method format")
-	}
-
-	keyHandler, err := keyManager.Get(vmSplit[vmSectionCount-1])
+	keyHandler, err := keyManager.Get(opts.KID)
 	if err != nil {
 		return nil, err
 	}
