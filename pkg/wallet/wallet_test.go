@@ -180,10 +180,8 @@ const (
 	sampleVerificationMethod = "did:key:z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5#z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5"
 	didKey                   = "did:key:z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5"
 	pkBase58                 = "2MP5gWCnf67jvW3E4Lz8PpVrDWAXMYY1sDxjnkEnKhkkbKD7yP2mkVeyVpu5nAtr3TeDgMNjBPirk2XcQacs3dvZ"
-	kid                      = "z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5"
 	didKeyBBS                = "did:key:zUC72c7u4BYVmfYinDceXkNAwzPEyuEE23kUmJDjLy8495KH3pjLwFhae1Fww9qxxRdLnS2VNNwni6W3KbYZKsicDtiNNEp76fYWR6HCD8jAz6ihwmLRjcHH6kB294Xfg1SL1qQ"
 	pkBBSBase58              = "6gsgGpdx7p1nYoKJ4b5fKt1xEomWdnemg9nJFX6mqNCh"
-	keyIDBBS                 = "zUC72c7u4BYVmfYinDceXkNAwzPEyuEE23kUmJDjLy8495KH3pjLwFhae1Fww9qxxRdLnS2VNNwni6W3KbYZKsicDtiNNEp76fYWR6HCD8jAz6ihwmLRjcHH6kB294Xfg1SL1qQ"
 	sampleEDVServerURL       = "sample-edv-url"
 	sampleEDVVaultID         = "sample-edv-vault-id"
 	sampleEDVEncryptionKID   = "sample-edv-encryption-kid"
@@ -1262,7 +1260,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// sign with just controller
 		result, err := walletInstance.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{
@@ -1290,7 +1288,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// sign with just controller
 		result, err := walletInstance.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{
@@ -1319,7 +1317,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// issue
 		result, err := walletInstance.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{
@@ -1348,7 +1346,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// issue credential
 		proofRepr := verifiable.SignatureJWS
@@ -1396,7 +1394,7 @@ func TestWallet_Issue(t *testing.T) {
 		privKeyBBS, err := bbs12381g2pub.UnmarshalPrivateKey(base58.Decode(pkBBSBase58))
 		require.NoError(t, err)
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type, kms.WithKeyID(keyIDBBS))
+		kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type)
 
 		// sign with just controller
 		proofRepr := verifiable.SignatureProofValue
@@ -1434,7 +1432,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// save DID Resolution response
 		err = walletInstance.Add(authToken, DIDResolutionResponse, []byte(sampleDocResolutionResponse))
@@ -1527,7 +1525,7 @@ func TestWallet_Issue(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// invalid signature type
 		result, err = walletInstance.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{
@@ -1595,12 +1593,12 @@ func TestWallet_Prove(t *testing.T) {
 
 	edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 	// nolint: errcheck, gosec
-	kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+	kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 	privKeyBBS, err := bbs12381g2pub.UnmarshalPrivateKey(base58.Decode(pkBBSBase58))
 	require.NoError(t, err)
 	// nolint: errcheck, gosec
-	kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type, kms.WithKeyID(keyIDBBS))
+	kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type)
 
 	// issue a credential with Ed25519Signature2018
 	result, err := walletForIssue.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{
@@ -1646,7 +1644,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		edVCBytes, err := json.Marshal(vcs["edvc"])
 		require.NoError(t, err)
@@ -1699,7 +1697,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		bbsVCBytes, err := json.Marshal(vcs["bbsvc"])
 		require.NoError(t, err)
@@ -1759,7 +1757,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		bbsVCBytes, err := json.Marshal(vcs["bbsvc"])
 		require.NoError(t, err)
@@ -1822,7 +1820,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// prepare opts
 		proofRepr := verifiable.SignatureJWS
@@ -1870,7 +1868,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// prepare opts
 		proofRepr := verifiable.SignatureJWS
@@ -2012,7 +2010,7 @@ func TestWallet_Prove(t *testing.T) {
 		require.NoError(t, err)
 		edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 		// nolint: errcheck, gosec
-		kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+		kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 		// invalid signature type
 		result, err = walletInstance.Prove(authToken, &ProofOptions{
@@ -2094,7 +2092,7 @@ func TestWallet_Verify(t *testing.T) {
 
 	edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 	// nolint: errcheck, gosec
-	kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+	kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 	// issue a credential
 	sampleVC, err := walletForIssue.Issue(tkn, []byte(sampleUDCVC), &ProofOptions{
@@ -2334,12 +2332,12 @@ func TestWallet_Derive(t *testing.T) {
 
 	edPriv := ed25519.PrivateKey(base58.Decode(pkBase58))
 	// nolint: errcheck, gosec
-	kmgr.ImportPrivateKey(edPriv, kms.ED25519, kms.WithKeyID(kid))
+	kmgr.ImportPrivateKey(edPriv, kms.ED25519)
 
 	privKeyBBS, err := bbs12381g2pub.UnmarshalPrivateKey(base58.Decode(pkBBSBase58))
 	require.NoError(t, err)
 	// nolint: errcheck, gosec
-	kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type, kms.WithKeyID(keyIDBBS))
+	kmgr.ImportPrivateKey(privKeyBBS, kms.BLS12381G2Type)
 
 	// issue a credential with Ed25519Signature2018
 	result, err := walletForIssue.Issue(authToken, []byte(sampleUDCVC), &ProofOptions{

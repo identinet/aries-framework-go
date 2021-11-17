@@ -996,7 +996,9 @@ func (c *Wallet) validateVerificationMethod(didDoc *did.Doc, opts *ProofOptions,
 
 		if opts.VerificationMethod == vm.VerificationMethod.ID {
 			switch vm.VerificationMethod.Type {
-			case verifiablec.Ed25519VerificationKey:
+			case verifiablec.Ed25519VerificationKey2018:
+			case verifiablec.Bls12381G2Key2020:
+				kt = kms.BLS12381G2Type
 			case verifiablec.JSONWebKey2020:
 				kt = verifiablec.KmsKeyTypeByJWKCurve(vm.VerificationMethod.JSONWebKey().Crv)
 			}
