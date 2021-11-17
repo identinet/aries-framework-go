@@ -32,6 +32,7 @@ const (
 	bbsSignerKeyTypeURL  = "type.hyperledger.org/hyperledger.aries.crypto.tink.BBSPrivateKey"
 )
 
+//nolint:funlen,gocyclo
 func (l *LocalKMS) importECDSAKey(privKey *ecdsa.PrivateKey, kt kms.KeyType,
 	opts ...kms.PrivateKeyOpts) (string, *keyset.Handle, error) {
 	var params *ecdsapb.EcdsaParams
@@ -83,24 +84,30 @@ func (l *LocalKMS) importECDSAKey(privKey *ecdsa.PrivateKey, kt kms.KeyType,
 	}
 
 	if len(opts) == 0 {
+		var kid string
+
 		// since the public key exists already in decoded form, use the
 		// IEEEP1363 encoding for marhalling and computing the key id as it is
 		// easier to use
-		tmp_kt := kms.ECDSAP256TypeIEEEP1363
+		tmpKt := kms.ECDSAP256TypeIEEEP1363
+
 		switch kt {
 		case kms.ECDSAP256TypeIEEEP1363, kms.ECDSAP256TypeDER:
-			tmp_kt = kms.ECDSAP256TypeIEEEP1363
+			tmpKt = kms.ECDSAP256TypeIEEEP1363
 		case kms.ECDSAP384TypeIEEEP1363, kms.ECDSAP384TypeDER:
-			tmp_kt = kms.ECDSAP384TypeIEEEP1363
+			tmpKt = kms.ECDSAP384TypeIEEEP1363
 		case kms.ECDSAP521TypeIEEEP1363, kms.ECDSAP521TypeDER:
-			tmp_kt = kms.ECDSAP521TypeIEEEP1363
+			tmpKt = kms.ECDSAP521TypeIEEEP1363
 		}
-		c := jwkkid.GetCurveByKMSKeyType(tmp_kt)
+
+		c := jwkkid.GetCurveByKMSKeyType(tmpKt)
 		pubKeyBytes := elliptic.Marshal(c, privKey.PublicKey.X, privKey.PublicKey.Y)
-		kid, err := CreateKID(pubKeyBytes, tmp_kt)
+
+		kid, err = CreateKID(pubKeyBytes, tmpKt)
 		if err != nil {
 			return "", nil, fmt.Errorf("import private EC  key failed: %w", err)
 		}
+
 		opts = append(opts, kms.WithKeyID(kid))
 	}
 
@@ -149,10 +156,13 @@ func (l *LocalKMS) importEd25519Key(privKey ed25519.PrivateKey, kt kms.KeyType,
 	}
 
 	if len(opts) == 0 {
-		kid, err := CreateKID(privKeyProto.PublicKey.KeyValue, kt)
+		var kid string
+
+		kid, err = CreateKID(privKeyProto.PublicKey.KeyValue, kt)
 		if err != nil {
 			return "", nil, fmt.Errorf("import private ED25519 key failed: %w", err)
 		}
+
 		opts = append(opts, kms.WithKeyID(kid))
 	}
 
@@ -182,10 +192,13 @@ func (l *LocalKMS) importBBSKey(privKey *bbs12381g2pub.PrivateKey, kt kms.KeyTyp
 	}
 
 	if len(opts) == 0 {
-		kid, err := CreateKID(privKeyProto.PublicKey.KeyValue, kt)
+		var kid string
+
+		kid, err = CreateKID(privKeyProto.PublicKey.KeyValue, kt)
 		if err != nil {
 			return "", nil, fmt.Errorf("import private BBS+ key failed: %w", err)
 		}
+
 		opts = append(opts, kms.WithKeyID(kid))
 	}
 

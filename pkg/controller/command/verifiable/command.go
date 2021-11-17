@@ -1108,7 +1108,7 @@ func buildKIDOption(opts *ProofOptions, vms []did.VerificationMethod) error {
 	return nil
 }
 
-// KmsKeyTypeByJWKCurve returns key type for the JWK curve's name
+// KmsKeyTypeByJWKCurve returns key type for the JWK curve's name.
 func KmsKeyTypeByJWKCurve(crv string) kms.KeyType {
 	kt := kms.ED25519Type
 

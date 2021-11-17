@@ -161,7 +161,7 @@ func generateJWKFromECDH(keyBytes []byte) (*jwk.JWK, error) {
 	return jwksupport.JWKFromKey(pubKey)
 }
 
-// GetCurveByKMSKeyType get  curve for KeyType
+// GetCurveByKMSKeyType get curve for KeyType.
 func GetCurveByKMSKeyType(kt kms.KeyType) elliptic.Curve {
 	switch kt {
 	case kms.ECDSAP256TypeIEEEP1363:

@@ -328,6 +328,7 @@ func importKeyJWK(auth string, key *keyContent) (string, error) {
 	if key.ID != "" {
 		opts = append(opts, kms.WithKeyID(getKIDFromJWK(key.ID, &j)))
 	}
+
 	kid, _, err := keyManager.ImportPrivateKey(j.Key, keyType, opts...)
 	if err != nil {
 		return "", fmt.Errorf("failed to import jwk key : %w", err)
@@ -338,8 +339,10 @@ func importKeyJWK(auth string, key *keyContent) (string, error) {
 
 // importKeyBase58 imports private key base58 found in key contents,
 // supported types - Ed25519Signature2018, Bls12381G1Key2020.
+//nolint:unparam // no test uses the kid return value yet but it should nevertheless be there
 func importKeyBase58(auth string, key *keyContent) (string, error) {
 	var kid string
+
 	keyManager, err := keyManager().getKeyManger(auth)
 	if err != nil {
 		if errors.Is(err, gcache.KeyNotFoundError) {
