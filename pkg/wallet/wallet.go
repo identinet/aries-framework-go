@@ -505,6 +505,11 @@ func (c *Wallet) Issue(authToken string, credential json.RawMessage,
 		return nil, fmt.Errorf("failed to prepare proof: %w", err)
 	}
 
+	err = c.ensureKeyID(authToken, options, purpose)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare proof: %w", err)
+	}
+
 	err = c.addLinkedDataProof(authToken, vc, options, purpose)
 	if err != nil {
 		return nil, fmt.Errorf("failed to issue credential: %w", err)
@@ -535,6 +540,11 @@ func (c *Wallet) Prove(authToken string, proofOptions *ProofOptions, credentials
 	}
 
 	presentation.Holder = proofOptions.Controller
+
+	err = c.ensureKeyID(authToken, proofOptions, purpose)
+	if err != nil {
+		return nil, fmt.Errorf("failed to prepare proof: %w", err)
+	}
 
 	err = c.addLinkedDataProof(authToken, presentation, proofOptions, purpose)
 	if err != nil {
@@ -959,6 +969,50 @@ func (c *Wallet) addLinkedDataProof(authToken string, p provable, opts *ProofOpt
 	return nil
 }
 
+func (c *Wallet) ensureKeyID(authToken string, opts *ProofOptions, relationship did.VerificationRelationship) error {
+	if opts.KID != "" {
+		return nil
+	}
+
+	resolvedDoc, err := newContentBasedVDR(authToken, c.vdr, c.contents).Resolve(opts.Controller)
+	if err != nil {
+		return err
+	}
+
+	kt := kms.ED25519Type
+
+	vms := resolvedDoc.DIDDocument.VerificationMethods(relationship)[relationship]
+
+	for _, vm := range vms {
+		var kid string
+
+		if opts.VerificationMethod == "" {
+			opts.VerificationMethod = vm.VerificationMethod.ID
+		}
+
+		if opts.VerificationMethod == vm.VerificationMethod.ID {
+			switch vm.VerificationMethod.Type {
+			case verifiablec.Ed25519VerificationKey2018:
+			case verifiablec.Bls12381G2Key2020:
+				kt = kms.BLS12381G2Type
+			case verifiablec.JSONWebKey2020:
+				kt = verifiablec.KmsKeyTypeByJWKCurve(vm.VerificationMethod.JSONWebKey().Crv)
+			}
+
+			kid, err = localkms.CreateKID(vm.VerificationMethod.Value, kt)
+			if err != nil {
+				return fmt.Errorf("failed to get keyID from verification method: %w", err)
+			}
+
+			opts.KID = kid
+
+			return nil
+		}
+	}
+
+	return fmt.Errorf("failed to get keyID from verification method")
+}
+
 func (c *Wallet) validateProofOption(authToken string, opts *ProofOptions, method did.VerificationRelationship) error {
 	if opts == nil || opts.Controller == "" {
 		return errors.New("invalid proof option, 'controller' is required")
@@ -988,7 +1042,6 @@ func (c *Wallet) validateProofOption(authToken string, opts *ProofOptions, metho
 func (c *Wallet) validateVerificationMethod(didDoc *did.Doc, opts *ProofOptions,
 	relationship did.VerificationRelationship) error {
 	vms := didDoc.VerificationMethods(relationship)[relationship]
-	kt := kms.ED25519Type
 
 	for _, vm := range vms {
 		if opts.VerificationMethod == "" {
@@ -996,21 +1049,6 @@ func (c *Wallet) validateVerificationMethod(didDoc *did.Doc, opts *ProofOptions,
 		}
 
 		if opts.VerificationMethod == vm.VerificationMethod.ID {
-			switch vm.VerificationMethod.Type {
-			case verifiablec.Ed25519VerificationKey2018:
-			case verifiablec.Bls12381G2Key2020:
-				kt = kms.BLS12381G2Type
-			case verifiablec.JSONWebKey2020:
-				kt = verifiablec.KmsKeyTypeByJWKCurve(vm.VerificationMethod.JSONWebKey().Crv)
-			}
-
-			kid, err := localkms.CreateKID(vm.VerificationMethod.Value, kt)
-			if err != nil {
-				return fmt.Errorf("failed to get keyID from verification method: %w", err)
-			}
-
-			opts.KID = kid
-
 			return nil
 		}
 	}
