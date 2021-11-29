@@ -211,8 +211,8 @@ const (
 			"privateKeyBase58":"2MP5gWCnf67jvW3E4Lz8PpVrDWAXMYY1sDxjnkEnKhkkbKD7yP2mkVeyVpu5nAtr3TeDgMNjBPirk2XcQacs3dvZ"
 		}`
 
-	sampleKeyContentBase58Id     = "23"
-	sampleKeyContentBase58WithId = `{
+	sampleKeyContentBase58ID     = "23"
+	sampleKeyContentBase58WithID = `{
 			"@context": ["https://w3id.org/wallet/v1"],
 			"id": "23",
 			"controller": "did:key:z6Mkj76JBAoTyqKM87ggSWDA9Zudnw1qFdpBv5Lm67jjGdcP",
@@ -220,8 +220,8 @@ const (
 			"privateKeyBase58": "5GR6rg39p47FKv6ujFfSYLK2SZc7Edhy2ck2Uu2B7GWzCnVRKhrUARukQVbciWAXew1BFzKi3pky5QA435AwrDum"
 		}`
 
-	sampleKeyContentBase58FragmentId     = "z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia"
-	sampleKeyContentBase58WithFragmentId = `{
+	sampleKeyContentBase58FragmentID     = "z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia"
+	sampleKeyContentBase58WithFragmentID = `{
 			"@context": ["https://w3id.org/wallet/v1"],
 			"id": "did:key:z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia#z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia",
 			"controller": "did:key:z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia",
@@ -1213,7 +1213,7 @@ func TestClient_IssueWithID(t *testing.T) {
 		defer vcWalletClient.Close()
 
 		// save a DID & corresponding key
-		require.NoError(t, vcWalletClient.Add(wallet.Key, []byte(sampleKeyContentBase58WithId)))
+		require.NoError(t, vcWalletClient.Add(wallet.Key, []byte(sampleKeyContentBase58WithID)))
 
 		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
 			Controller: sampleDIDKey2,
@@ -1232,7 +1232,7 @@ func TestClient_IssueWithID(t *testing.T) {
 
 		// sign with just controller
 		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
-			KID:        sampleKeyContentBase58FragmentId,
+			KID:        sampleKeyContentBase58ID,
 			Controller: sampleDIDKey,
 		})
 		require.Error(t, err)
@@ -1249,7 +1249,7 @@ func TestClient_IssueWithID(t *testing.T) {
 
 		// sign with just controller
 		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
-			KID:        sampleKeyContentBase58FragmentId,
+			KID:        sampleKeyContentBase58ID,
 			Controller: sampleDIDKey,
 		})
 		require.Error(t, err)
@@ -1257,6 +1257,85 @@ func TestClient_IssueWithID(t *testing.T) {
 		require.Empty(t, result)
 	})
 }
+
+func TestClient_IssueWithFramentID(t *testing.T) {
+	customVDR := &mockvdr.MockVDRegistry{
+		ResolveFunc: func(didID string, opts ...vdrapi.DIDMethodOption) (*did.DocResolution, error) {
+			if strings.HasPrefix(didID, "did:key:") {
+				k := key.New()
+
+				d, e := k.Read(didID)
+				if e != nil {
+					return nil, e
+				}
+
+				return d, nil
+			}
+
+			return nil, fmt.Errorf("did not found")
+		},
+	}
+
+	mockctx := newMockProvider(t)
+	mockctx.VDRegistryValue = customVDR
+	mockctx.CryptoValue = &cryptomock.Crypto{}
+
+	err := CreateProfile(sampleUserID, mockctx, wallet.WithPassphrase(samplePassPhrase))
+	require.NoError(t, err)
+
+	t.Run("Test VC wallet client issue using controller - success", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx, wallet.WithUnlockByPassphrase(samplePassPhrase))
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// save a DID & corresponding key
+		require.NoError(t, vcWalletClient.Add(wallet.Key, []byte(sampleKeyContentBase58WithFragmentID)))
+
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			Controller: sampleDIDKey2,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to read json keyset from reader")
+		require.Empty(t, result)
+	})
+
+	t.Run("Test VC wallet client issue using controller - wallet locked", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx)
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// sign with just controller
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			KID:        sampleKeyContentBase58FragmentID,
+			Controller: sampleDIDKey,
+		})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWalletLocked))
+		require.Empty(t, result)
+	})
+
+	t.Run("Test VC wallet client issue using controller - wallet locked", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx)
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// sign with just controller
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			KID:        sampleKeyContentBase58FragmentID,
+			Controller: sampleDIDKey,
+		})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWalletLocked))
+		require.Empty(t, result)
+	})
+}
+
 func TestClient_Prove(t *testing.T) {
 	customVDR := &mockvdr.MockVDRegistry{
 		ResolveFunc: func(didID string, opts ...vdrapi.DIDMethodOption) (*did.DocResolution, error) {
