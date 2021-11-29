@@ -199,17 +199,35 @@ const (
 		}
 	`
 	sampleInvalidDIDContent = `{
-    	"@context": ["https://w3id.org/did/v1"],
-    	"id": "did:example:sampleInvalidDIDContent"
+		"@context": ["https://w3id.org/did/v1"],
+		"id": "did:example:sampleInvalidDIDContent"
 		}`
 
 	sampleKeyContentBase58 = `{
-  			"@context": ["https://w3id.org/wallet/v1"],
-  		  	"id": "did:key:z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5#z6MknC1wwS6DEYwtGbZZo2QvjQjkh2qSBjb4GYmbye8dv4S5",
-  		  	"controller": "did:example:123456789abcdefghi",
+			"@context": ["https://w3id.org/wallet/v1"],
+			"id": "",
+			"controller": "did:example:123456789abcdefghi",
 			"type": "Ed25519VerificationKey2018",
 			"privateKeyBase58":"2MP5gWCnf67jvW3E4Lz8PpVrDWAXMYY1sDxjnkEnKhkkbKD7yP2mkVeyVpu5nAtr3TeDgMNjBPirk2XcQacs3dvZ"
-  		}`
+		}`
+
+	sampleKeyContentBase58Id     = "23"
+	sampleKeyContentBase58WithId = `{
+			"@context": ["https://w3id.org/wallet/v1"],
+			"id": "23",
+			"controller": "did:key:z6Mkj76JBAoTyqKM87ggSWDA9Zudnw1qFdpBv5Lm67jjGdcP",
+			"type": "Ed25519VerificationKey2018",
+			"privateKeyBase58": "5GR6rg39p47FKv6ujFfSYLK2SZc7Edhy2ck2Uu2B7GWzCnVRKhrUARukQVbciWAXew1BFzKi3pky5QA435AwrDum"
+		}`
+
+	sampleKeyContentBase58FragmentId     = "z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia"
+	sampleKeyContentBase58WithFragmentId = `{
+			"@context": ["https://w3id.org/wallet/v1"],
+			"id": "did:key:z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia#z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia",
+			"controller": "did:key:z6MknT4m3MtA9UD1npGehFuBNiv6Bu8M25egHCaDbVcdHtia",
+			"type": "Ed25519VerificationKey2018",
+			"privateKeyBase58":"2UX4xA7k2DYGjrTZgbCdv2FPLJcwEMC6eFkyTK2CtUpaUWdiJiF8SB2mX1jTvGnYKr7sx8XZrkyQsPaV6LPAAN6i"
+		}`
 
 	sampleDIDResolutionResponse = `{
     "@context": [
@@ -1162,6 +1180,83 @@ func TestClient_Issue(t *testing.T) {
 	})
 }
 
+func TestClient_IssueWithID(t *testing.T) {
+	customVDR := &mockvdr.MockVDRegistry{
+		ResolveFunc: func(didID string, opts ...vdrapi.DIDMethodOption) (*did.DocResolution, error) {
+			if strings.HasPrefix(didID, "did:key:") {
+				k := key.New()
+
+				d, e := k.Read(didID)
+				if e != nil {
+					return nil, e
+				}
+
+				return d, nil
+			}
+
+			return nil, fmt.Errorf("did not found")
+		},
+	}
+
+	mockctx := newMockProvider(t)
+	mockctx.VDRegistryValue = customVDR
+	mockctx.CryptoValue = &cryptomock.Crypto{}
+
+	err := CreateProfile(sampleUserID, mockctx, wallet.WithPassphrase(samplePassPhrase))
+	require.NoError(t, err)
+
+	t.Run("Test VC wallet client issue using controller - success", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx, wallet.WithUnlockByPassphrase(samplePassPhrase))
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// save a DID & corresponding key
+		require.NoError(t, vcWalletClient.Add(wallet.Key, []byte(sampleKeyContentBase58WithId)))
+
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			Controller: sampleDIDKey2,
+		})
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to read json keyset from reader")
+		require.Empty(t, result)
+	})
+
+	t.Run("Test VC wallet client issue using controller - wallet locked", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx)
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// sign with just controller
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			KID:        sampleKeyContentBase58FragmentId,
+			Controller: sampleDIDKey,
+		})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWalletLocked))
+		require.Empty(t, result)
+	})
+
+	t.Run("Test VC wallet client issue using controller - wallet locked", func(t *testing.T) {
+		vcWalletClient, err := New(sampleUserID, mockctx)
+		require.NotEmpty(t, vcWalletClient)
+		require.NoError(t, err)
+
+		defer vcWalletClient.Close()
+
+		// sign with just controller
+		result, err := vcWalletClient.Issue([]byte(sampleUDCVC), &wallet.ProofOptions{
+			KID:        sampleKeyContentBase58FragmentId,
+			Controller: sampleDIDKey,
+		})
+		require.Error(t, err)
+		require.True(t, errors.Is(err, ErrWalletLocked))
+		require.Empty(t, result)
+	})
+}
 func TestClient_Prove(t *testing.T) {
 	customVDR := &mockvdr.MockVDRegistry{
 		ResolveFunc: func(didID string, opts ...vdrapi.DIDMethodOption) (*did.DocResolution, error) {
